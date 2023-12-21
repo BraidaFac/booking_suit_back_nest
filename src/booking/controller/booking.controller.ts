@@ -6,7 +6,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
 } from '@nestjs/common';
 import { CreateBookingDto } from '../dto/create-booking.dto';
 import { BookingService } from '../service/booking.service';
@@ -40,10 +39,7 @@ export class BookingController {
     return this.bookingService.getBookingsBySuit(id);
   }
   @Get('suit/:id/fechas')
-  getDatesBySuit(
-    @Param('id') id: string,
-    @Query('modista') dressmaker: boolean,
-  ) {
-    return this.bookingService.getDatesBySuit(id, dressmaker);
+  getDatesBySuit(@Param('id') id: string) {
+    return this.bookingService.getBusyDatesBySuit(id);
   }
 }

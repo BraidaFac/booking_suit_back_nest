@@ -22,16 +22,31 @@ export class BookingService {
       return new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
     }
     const newBooking = this.bookingRepository.create(booking);
-    if (new Date(booking.booking_date) < startOfDay(new Date())) {
+
+    const match = String(booking.booking_date).match(
+      /^(\d{4})-(\d{2})-(\d{2})T?/,
+    );
+    if (match) {
+      const [, year, month, day] = match;
+      newBooking.booking_date = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+      );
+    } else {
+      throw new HttpException('Wrong Date', HttpStatus.BAD_REQUEST);
+    }
+
+    if (newBooking.booking_date < startOfDay(new Date())) {
       return new HttpException('Date Not Valid', HttpStatus.BAD_REQUEST);
     }
-    newBooking.booking_date = new Date(booking.booking_date);
     this.calculateStartDate(newBooking);
     this.calculateEndDate(newBooking);
     if (!(await this.verifyDisponibility(newBooking))) {
-      return new HttpException('Suit Not Available', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Suit Not Available', HttpStatus.BAD_REQUEST);
     }
     newBooking.suit = suitFound;
+    newBooking.booking_state = 'ACTIVED';
     return this.bookingRepository.save(newBooking);
   }
 
@@ -66,7 +81,7 @@ export class BookingService {
       where: { id: Number(id) },
     });
     if (!bookingFound) {
-      return new HttpException('Booking Not Found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Booking Not Found', HttpStatus.NOT_FOUND);
     }
     this.bookingRepository.remove(bookingFound);
     return {
@@ -78,7 +93,7 @@ export class BookingService {
       where: { id },
     });
     if (!suitFound) {
-      return new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
     }
     return this.bookingRepository.find({
       where: { suit: suitFound },
@@ -92,7 +107,7 @@ export class BookingService {
       where: { id: Number(id) },
     });
     if (!bookingFound) {
-      return new HttpException('Booking Not Found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Booking Not Found', HttpStatus.NOT_FOUND);
     }
     bookingFound.booking_state = 'CANCELED';
     return this.bookingRepository.save(bookingFound);
@@ -116,6 +131,8 @@ export class BookingService {
       order: { booking_date: 'ASC' },
       relations: { suit: true },
     });
+    const QUANTITY_OF_DAYS = dressmaker ? 48 : 24;
+
     const availableDates = [];
     for (let i = 0; i < bookings.length; i++) {
       if (i === bookings.length - 1) {
@@ -131,7 +148,6 @@ export class BookingService {
         currentBooking.end_at,
       );
       if (timeDiff >= 120) {
-        const QUANTITY_OF_DAYS = dressmaker ? 48 : 24;
         for (let j = 1; j <= timeDiff / 24; j++) {
           const date = new Date(currentBooking.end_at);
           date.setHours(0, 0, 0, 0);
@@ -151,6 +167,51 @@ export class BookingService {
     return availableDates;
   }
 
+  async getBusyDatesBySuit(id: string) {
+    const suitFound = await this.suitRepository.findOne({
+      where: { id },
+    });
+    if (!suitFound) {
+      throw new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const bookings = await this.bookingRepository.find({
+      where: {
+        suit: suitFound,
+        booking_state: 'ACTIVED',
+        booking_date: MoreThanOrEqual(today),
+      },
+      order: { booking_date: 'ASC' },
+      relations: { suit: true },
+    });
+
+    const busyDates = { laundry: [], dressmaker: [], preparation: [] };
+
+    for (let i = 0; i < bookings.length; i++) {
+      const currentBooking: Booking = bookings[i];
+      const start_at = new Date(currentBooking.start_at);
+      const end_at = new Date(currentBooking.end_at);
+      const booking_date = new Date(currentBooking.booking_date);
+      const datesInRangeLaundry = getDatesInRangeLaundry(booking_date, end_at);
+      const preparation_date = new Date(currentBooking.booking_date);
+      preparation_date.setDate(booking_date.getDate() - 1);
+      if (currentBooking.dressmaker) {
+        const datesInRangeDressmaker = getDatesInRangeDressmaker(
+          start_at,
+          preparation_date,
+        );
+        busyDates.dressmaker = [
+          ...busyDates.dressmaker,
+          ...datesInRangeDressmaker,
+        ];
+      }
+      busyDates.laundry = [...busyDates.laundry, ...datesInRangeLaundry];
+      busyDates.preparation = [...busyDates.preparation, preparation_date];
+    }
+    return busyDates;
+  }
+
   deleteAllBooking() {
     return this.bookingRepository.clear();
   }
@@ -164,7 +225,7 @@ export class BookingService {
     } else {
       const start_date = new Date(booking.booking_date);
       start_date.setDate(start_date.getDate() - 1);
-      start_date.setHours(12, 0, 0, 0);
+      start_date.setHours(15, 0, 0, 0);
       booking.start_at = start_date;
     }
   }
@@ -258,4 +319,26 @@ export class BookingService {
       return true;
     } else return false;
   }
+}
+function getDatesInRangeDressmaker(firstDay, endDate) {
+  const datesInRange = [];
+  const currentDate = new Date(firstDay);
+
+  while (currentDate < endDate) {
+    datesInRange.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return datesInRange;
+}
+function getDatesInRangeLaundry(firstDay, endDate) {
+  const datesInRange = [];
+  const currentDate = new Date(firstDay);
+  currentDate.setDate(currentDate.getDate() + 1);
+  while (currentDate < endDate) {
+    datesInRange.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return datesInRange;
 }
