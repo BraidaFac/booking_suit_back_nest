@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { Booking } from '../entity/booking.entity';
 import { CreateBookingDto } from '../dto/create-booking.dto';
 import { Suit } from 'src/suit/entity/suit.entity';
@@ -15,7 +15,7 @@ export class BookingService {
 
   async createBooking(booking: CreateBookingDto) {
     //TODO logica de verificar la reserva ya realizada para una fecha y un traje
-    const suitFound = await this.suitRepository.findOne({
+    const suitFound: Suit = await this.suitRepository.findOne({
       where: { id: booking.suit.id },
     });
     if (!suitFound) {
@@ -37,9 +37,9 @@ export class BookingService {
       throw new HttpException('Wrong Date', HttpStatus.BAD_REQUEST);
     }
 
-    if (newBooking.booking_date < startOfDay(new Date())) {
+    /* if (newBooking.booking_date < startOfDay(new Date())) {
       return new HttpException('Date Not Valid', HttpStatus.BAD_REQUEST);
-    }
+    } */
     this.calculateStartDate(newBooking);
     this.calculateEndDate(newBooking);
     if (!(await this.verifyDisponibility(newBooking))) {
@@ -51,7 +51,20 @@ export class BookingService {
   }
 
   getBooking() {
+    console.log(
+      this.bookingRepository.find({
+        where: {
+          booking_state: In(['ACTIVED', 'INPROGRESS']),
+        },
+        relations: {
+          suit: true,
+        },
+      }),
+    );
     return this.bookingRepository.find({
+      where: {
+        booking_state: In(['ACTIVED', 'INPROGRESS']),
+      },
       relations: {
         suit: true,
       },
@@ -74,7 +87,15 @@ export class BookingService {
       }
       booking.suit = suitFound;
     }
-    return this.bookingRepository.update({ id: Number(id) }, booking);
+    Object.assign(bookingFound, booking);
+    try {
+      return await this.bookingRepository.save(bookingFound);
+    } catch (e) {
+      return new HttpException(
+        'Error updating booking',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
   async deleteBooking(id: string) {
     const bookingFound = await this.bookingRepository.findOne({
@@ -83,7 +104,8 @@ export class BookingService {
     if (!bookingFound) {
       throw new HttpException('Booking Not Found', HttpStatus.NOT_FOUND);
     }
-    this.bookingRepository.remove(bookingFound);
+    Object.assign(bookingFound, { booking_state: 'CANCELED' });
+    await this.bookingRepository.save(bookingFound);
     return {
       message: 'Booking deleted successfully',
     };
@@ -96,7 +118,7 @@ export class BookingService {
       throw new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
     }
     return this.bookingRepository.find({
-      where: { suit: suitFound },
+      where: { suit: suitFound, booking_state: In(['ACTIVED', 'INPROGRESS']) },
       relations: {
         suit: true,
       },
@@ -179,7 +201,7 @@ export class BookingService {
     const bookings = await this.bookingRepository.find({
       where: {
         suit: suitFound,
-        booking_state: 'ACTIVED',
+        booking_state: In(['INPROGRESS', 'ACTIVED']),
         booking_date: MoreThanOrEqual(today),
       },
       order: { booking_date: 'ASC' },
@@ -215,6 +237,7 @@ export class BookingService {
   deleteAllBooking() {
     return this.bookingRepository.clear();
   }
+
   //UTILS
   calculateStartDate(booking: Booking) {
     if (booking.dressmaker) {
@@ -261,7 +284,7 @@ export class BookingService {
     });
     const bookings_before = await this.bookingRepository.find({
       where: {
-        booking_state: 'ACTIVED',
+        booking_state: In(['ACTIVED', 'INPROGRESS']),
         suit: booking.suit,
         booking_date: LessThan(booking.booking_date),
       },

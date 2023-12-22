@@ -47,6 +47,11 @@ export class SuitService {
     if (!suitFound) {
       return new HttpException('Suit not found', HttpStatus.NOT_FOUND);
     }
-    return this.suitRepository.update({ id }, suit);
+    Object.assign(suitFound, suit);
+    try {
+      return await this.suitRepository.save(suitFound);
+    } catch (e) {
+      return new HttpException('Error updating suit', HttpStatus.BAD_REQUEST);
+    }
   }
 }

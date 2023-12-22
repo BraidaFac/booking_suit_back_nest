@@ -11,7 +11,7 @@ export class CreateBookingDto {
   @IsNotEmpty()
   @IsDateString()
   booking_date: Date;
-  booking_state: 'ACTIVED' | 'CANCELED' | 'COMPLETED';
+  booking_state: 'ACTIVED' | 'CANCELED' | 'COMPLETED' | 'INPROGRESS';
   @IsNotEmpty()
   @IsObject()
   suit: Suit;
@@ -24,6 +24,11 @@ export class CreateBookingDto {
   @IsNotEmpty()
   @IsString()
   client_phone: string;
+  @IsNotEmpty()
+  @IsString()
+  account_related: string;
+  @IsString()
+  observations: string;
   @IsBoolean()
   dressmaker: boolean;
 }

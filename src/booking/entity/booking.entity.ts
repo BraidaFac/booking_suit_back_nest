@@ -15,7 +15,7 @@ export class Booking {
   @Column({ type: 'timestamp' })
   booking_date: Date;
   @Column()
-  booking_state: 'ACTIVED' | 'CANCELED' | 'COMPLETED';
+  booking_state: 'ACTIVED' | 'CANCELED' | 'COMPLETED' | 'INPROGRESS';
   @ManyToOne(() => Suit, (suit) => suit.bookings, { nullable: false })
   suit: Suit;
   @Column()
@@ -24,6 +24,10 @@ export class Booking {
   client_name: string;
   @Column()
   client_phone: string;
+  @Column()
+  account_related: string;
+  @Column()
+  observations: string;
   @Column({ default: false })
   dressmaker: boolean;
 }
