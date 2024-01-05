@@ -4,6 +4,7 @@ import {
   IsObject,
   IsBoolean,
   IsDateString,
+  IsEmpty,
 } from 'class-validator';
 import { Suit } from 'src/suit/entity/suit.entity';
 
@@ -31,4 +32,6 @@ export class CreateBookingDto {
   observations: string;
   @IsBoolean()
   dressmaker: boolean;
+  booking_retired_suit: Date;
+  booking_return_suit: Date;
 }

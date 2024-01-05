@@ -1,8 +1,9 @@
 export enum SuitState {
   RETIRADO = 'RETIRADO',
-  ENLOCAL = 'ENLOCAL',
+  ENLOCALLMPIO = 'ENLOCALLIMPIO',
   LIMPIEZA = 'LIMPIEZA',
   MODISTA = 'MODISTA',
+  ENLOCALSUCIO = 'ENLOCALSUCIO',
 }
 export enum SuitCategory {
   A = 'A',

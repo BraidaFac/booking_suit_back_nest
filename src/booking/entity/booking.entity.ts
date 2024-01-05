@@ -12,6 +12,10 @@ export class Booking {
   start_at: Date;
   @Column({ type: 'timestamp' })
   end_at: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  booking_return_suit: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  booking_retired_suit: Date;
   @Column({ type: 'timestamp' })
   booking_date: Date;
   @Column()

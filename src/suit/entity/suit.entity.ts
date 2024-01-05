@@ -9,7 +9,7 @@ export class Suit {
   brand: string;
   @Column()
   category: SuitCategory;
-  @Column({ default: SuitState.ENLOCAL })
+  @Column({ default: SuitState.ENLOCALLMPIO })
   state: SuitState;
   @Column({ nullable: true })
   image: string;

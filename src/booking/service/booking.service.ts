@@ -51,20 +51,7 @@ export class BookingService {
   }
 
   getBooking() {
-    console.log(
-      this.bookingRepository.find({
-        where: {
-          booking_state: In(['ACTIVED', 'INPROGRESS']),
-        },
-        relations: {
-          suit: true,
-        },
-      }),
-    );
     return this.bookingRepository.find({
-      where: {
-        booking_state: In(['ACTIVED', 'INPROGRESS']),
-      },
       relations: {
         suit: true,
       },
@@ -118,7 +105,10 @@ export class BookingService {
       throw new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
     }
     return this.bookingRepository.find({
-      where: { suit: suitFound, booking_state: In(['ACTIVED', 'INPROGRESS']) },
+      where: {
+        suit: suitFound,
+        booking_state: In(['ACTIVED', 'INPROGRESS', 'COMPLETED']),
+      },
       relations: {
         suit: true,
       },
@@ -201,8 +191,7 @@ export class BookingService {
     const bookings = await this.bookingRepository.find({
       where: {
         suit: suitFound,
-        booking_state: In(['INPROGRESS', 'ACTIVED']),
-        booking_date: MoreThanOrEqual(today),
+        booking_state: In(['INPROGRESS', 'ACTIVED', 'COMPLETED']),
       },
       order: { booking_date: 'ASC' },
       relations: { suit: true },
