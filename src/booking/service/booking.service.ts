@@ -345,26 +345,31 @@ export class BookingService {
     booking_return_suit: Date,
     booking_retired_suit: Date,
   ) {
-    return await this.dataSource.transaction(async (manager) => {
-      const booking = await manager.getRepository(Booking).findOne({
-        where: {
-          id: booking_id,
-        },
-        relations: ['suit'],
-      });
+    try {
+      const res = await this.dataSource.transaction(async (manager) => {
+        const booking = await manager.getRepository(Booking).findOne({
+          where: {
+            id: booking_id,
+          },
+          relations: ['suit'],
+        });
 
-      const suit = await manager.getRepository(Suit).findOne({
-        where: {
-          id: booking.suit.id,
-        },
+        const suit = booking.suit;
+        booking.booking_state = booking_state;
+        booking.booking_return_suit = booking_return_suit;
+        booking.booking_retired_suit = booking_retired_suit;
+        booking.suit.state = suit_state;
+        suit.state = suit_state;
+
+        return {
+          booking: await manager.save(booking),
+          suit: await manager.save(suit),
+        };
       });
-      booking.booking_state = booking_state;
-      booking.booking_return_suit = booking_return_suit;
-      booking.booking_retired_suit = booking_retired_suit;
-      suit.state = suit_state;
-      await manager.save(booking);
-      await manager.save(suit);
-    });
+      return res;
+    } catch (err) {
+      throw new HttpException('Error updating booking', HttpStatus.BAD_REQUEST);
+    }
   }
 }
 function getDatesInRangeDressmaker(firstDay, endDate) {

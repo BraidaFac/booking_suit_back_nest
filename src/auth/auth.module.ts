@@ -12,7 +12,7 @@ const { secret } = process.env;
     JwtModule.register({
       global: true,
       secret: secret,
-      signOptions: { expiresIn: '500s' },
+      signOptions: { expiresIn: '30d' },
     }),
   ],
   controllers: [AuthController],
