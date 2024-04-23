@@ -40,4 +40,8 @@ export class SuitController {
   updateSuit(@Param('id') id: string, @Body() suit: UpdateSuitDto) {
     return this.suitService.updateSuit(id, suit);
   }
+  @Get('free/:date')
+  getFreeSuits(@Param('date') date: string) {
+    return this.suitService.getFreeSuits(date);
+  }
 }
