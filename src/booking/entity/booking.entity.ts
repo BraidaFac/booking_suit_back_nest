@@ -20,7 +20,10 @@ export class Booking {
   booking_date: Date;
   @Column()
   booking_state: 'ACTIVED' | 'CANCELED' | 'COMPLETED' | 'INPROGRESS';
-  @ManyToOne(() => Suit, (suit) => suit.bookings, { nullable: false })
+  @ManyToOne(() => Suit, (suit) => suit.bookings, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   suit: Suit;
   @Column()
   client_dni: string;

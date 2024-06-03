@@ -56,6 +56,7 @@ export class SuitService {
       );
     }
     const res = await this.suitRepository.remove(suitFound);
+
     if (!res) {
       throw new HttpException(
         'Error deleting suit',
