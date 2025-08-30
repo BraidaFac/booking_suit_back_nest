@@ -1,0 +1,47 @@
+docker network create my_network
+
+docker run -d \
+  --name nginx \
+  -p 80:80 \
+  -p 443:443 \
+  --restart always \
+  -v $(pwd)/nginx/conf:/etc/nginx/conf.d/ \
+  -v $(pwd)/certbot/conf:/etc/letsencrypt \
+  -v $(pwd)/certbot/www:/var/www/certbot \
+  --network my_network \
+  nginx:latest
+
+
+docker run -d \
+  --name db \
+  --restart always \
+  -e MYSQL_ROOT_PASSWORD=1101 \
+  -v db_data:/var/lib/mysql \
+  -v $(pwd)/init.sql:/docker-entrypoint-initdb.d/init.sql \
+  --network my_network \
+  mysql:8.0
+
+
+docker run -d \
+  --name nest-app \
+  --restart always \
+  -p 3000:3000 \
+  -e DB_HOST=db \
+  -e DB_NAME=suits \
+  -e DB_PASSWORD=1101 \
+  -e DB_PORT=3306 \
+  -e DB_USER=root \
+  -e LAUNDRY=3 \
+  -e PORT=3000 \
+  -e secret=f6d8187726c550ae48efeb79d8924de315fa52c06e7e44a7946fb57cdea951e488dabe63ec53977aa31f243612520a68b29cf9becbc60e8e9db28749b3cb6584 \
+  --network my_network \
+  druga98/suit:latest
+
+docker run -d \
+  --name certbot \
+  -v $(pwd)/certbot/conf:/etc/letsencrypt:rw \
+  -v $(pwd)/certbot/www:/var/www/certbot:rw \
+  --network my_network \
+  --entrypoint "/bin/sh" \
+  certbot/certbot:latest \
+  -c 'trap exit TERM; while :; do certbot renew --deploy-hook "docker exec nginx nginx -s reload"; sleep 12h & wait $${!}; done;'\

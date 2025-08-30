@@ -1,18 +1,15 @@
 import {
-  Controller,
-  Get,
   Body,
-  Post,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
   Patch,
-  UseGuards,
-  Req,
+  Post,
 } from '@nestjs/common';
 import { CreateSuitDto } from '../dto/create-suit.dto';
-import { SuitService } from '../service/suit.service';
 import { UpdateSuitDto } from '../dto/update-suit.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { SuitService } from '../service/suit.service';
 @Controller('suit')
 export class SuitController {
   constructor(private suitService: SuitService) {}
@@ -20,9 +17,17 @@ export class SuitController {
   getSuits() {
     return this.suitService.getSuits();
   }
-  @Get('loundry')
+  @Get('laundry')
   getSuitToLoundry() {
     return this.suitService.getSuitToLoundry();
+  }
+  @Get('laundry/take')
+  getSuitToTakeLoundry() {
+    return this.suitService.getSuitToTakeLoundry();
+  }
+  @Get('laundry/in')
+  getSuitInLoundry() {
+    return this.suitService.getSuitsInLoundry();
   }
   @Get('/:id')
   getOneSuit(@Param('id') id: string) {

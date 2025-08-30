@@ -6,12 +6,10 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { CreateBookingDto } from '../dto/create-booking.dto';
 import { BookingService } from '../service/booking.service';
 import { UpdateBookingDto } from '../dto/update-booking.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
 import { SuitState } from 'src/utils/suit_utils';
 
 @Controller('booking')
@@ -20,6 +18,10 @@ export class BookingController {
   @Get()
   getBookings() {
     return this.bookingService.getBooking();
+  }
+  @Get('reservas')
+  getBookingsFuture() {
+    return this.bookingService.getBookingsFuture();
   }
   @Post()
   createBooking(@Body() booking: CreateBookingDto) {

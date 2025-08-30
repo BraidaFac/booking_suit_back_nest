@@ -1,7 +1,14 @@
+import { Booking } from 'src/booking/entity/booking.entity';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
-import { Booking } from '../entity/booking.entity';
+import {
+  DataSource,
+  In,
+  LessThan,
+  MoreThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { CreateBookingDto } from '../dto/create-booking.dto';
 import { Suit } from 'src/suit/entity/suit.entity';
 import { UpdateBookingDto } from '../dto/update-booking.dto';
@@ -115,9 +122,6 @@ export class BookingService {
         suit: true,
       },
     });
-    Logger.log(bookings);
-    Logger.log(bookings[0]?.booking_date.getDate());
-
     return bookings;
   }
   async cancelBookings(id: string) {
@@ -371,6 +375,17 @@ export class BookingService {
       throw new HttpException('Error updating booking', HttpStatus.BAD_REQUEST);
     }
   }
+
+  getBookingsFuture = async (): Promise<Booking[]> => {
+    const bookings = await this.bookingRepository.find({
+      where: {
+        booking_state: 'ACTIVED',
+        booking_date: MoreThan(new Date()),
+      },
+      relations: ['suit'],
+    });
+    return bookings;
+  };
 }
 function getDatesInRangeDressmaker(firstDay, endDate) {
   const datesInRange = [];

@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Suit } from '../entity/suit.entity';
-import { Repository } from 'typeorm';
+import { SuitState } from 'src/utils/suit_utils';
+import { In, Repository } from 'typeorm';
 import { CreateSuitDto } from '../dto/create-suit.dto';
 import { UpdateSuitDto } from '../dto/update-suit.dto';
-import { SuitState } from 'src/utils/suit_utils';
+import { Suit } from '../entity/suit.entity';
 @Injectable()
 export class SuitService {
   constructor(
@@ -73,6 +73,8 @@ export class SuitService {
       throw new HttpException('Suit not found', HttpStatus.NOT_FOUND);
     }
     Object.assign(suitFound, suit);
+    console.log(suitFound);
+
     try {
       return await this.suitRepository.save(suitFound);
     } catch (e) {
@@ -82,7 +84,9 @@ export class SuitService {
 
   async getSuitToLoundry() {
     const suitsToLoundry = await this.suitRepository.find({
-      where: { state: SuitState.ENLOCALSUCIO },
+      where: {
+        state: SuitState.ENLOCALSUCIO,
+      },
     });
     if (suitsToLoundry.length > 0) {
       return suitsToLoundry;
@@ -93,7 +97,15 @@ export class SuitService {
 
   async getSuitToTakeLoundry() {
     const suitsToTakeLoundry = await this.suitRepository.find({
-      where: { state: SuitState.LAVANDERIALIMPIO },
+      where: {
+        state: In([
+          SuitState.LAVANDERIALUCECITALIMPIO,
+          SuitState.LAVANDERIACELIALIMPIO,
+        ]),
+      },
+      relations: {
+        bookings: true,
+      },
     });
     if (suitsToTakeLoundry.length > 0) {
       return suitsToTakeLoundry;
@@ -103,7 +115,15 @@ export class SuitService {
   }
   async getSuitsInLoundry() {
     const suitsInLoundry = await this.suitRepository.find({
-      where: { state: SuitState.LAVANDERIASUCIO },
+      where: {
+        state: In([
+          SuitState.LAVANDERIALUCECITASUCIO,
+          SuitState.LAVANDERIACELIASUCIO,
+        ]),
+      },
+      relations: {
+        bookings: true,
+      },
     });
     if (suitsInLoundry.length > 0) {
       return suitsInLoundry;
