@@ -1,6 +1,9 @@
-import { Booking } from 'src/booking/entity/booking.entity';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { addDays, differenceInHours, getDay } from 'date-fns';
+import { Booking } from 'src/booking/entity/booking.entity';
+import { Suit } from 'src/suit/entity/suit.entity';
+import { SuitState } from 'src/utils/suit_utils';
 import {
   DataSource,
   In,
@@ -10,10 +13,7 @@ import {
   Repository,
 } from 'typeorm';
 import { CreateBookingDto } from '../dto/create-booking.dto';
-import { Suit } from 'src/suit/entity/suit.entity';
 import { UpdateBookingDto } from '../dto/update-booking.dto';
-import { addDays, differenceInHours, getDay } from 'date-fns';
-import { SuitState } from 'src/utils/suit_utils';
 @Injectable()
 export class BookingService {
   constructor(
@@ -73,6 +73,8 @@ export class BookingService {
     const bookingFound = await this.bookingRepository.findOne({
       where: { id: Number(id) },
     });
+    console.log(bookingFound);
+
     if (!bookingFound) {
       throw new HttpException('Booking Not Found', HttpStatus.NOT_FOUND);
     }
@@ -86,7 +88,9 @@ export class BookingService {
       }
       booking.suit = suitFound;
     }
+    delete booking.booking_date;
     Object.assign(bookingFound, booking);
+
     try {
       return await this.bookingRepository.save(bookingFound);
     } catch (e) {
