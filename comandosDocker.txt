@@ -5,16 +5,15 @@ docker run -d \
   -p 80:80 \
   -p 443:443 \
   --restart always \
-  -v $(pwd)/nginx/conf:/etc/nginx/conf.d/ \
-  -v $(pwd)/certbot/conf:/etc/letsencrypt \
-  -v $(pwd)/certbot/www:/var/www/certbot \
+  -v $(pwd)/suitapp/nginx/conf:/etc/nginx/conf.d/ \
+  -v /etc/letsencrypt:/etc/letsencrypt \
   --network my_network \
   nginx:latest
 
 
 docker run -d \
   --name db \
-  --restart always \
+  --restart always \1
   -e MYSQL_ROOT_PASSWORD=1101 \
   -v db_data:/var/lib/mysql \
   -v $(pwd)/init.sql:/docker-entrypoint-initdb.d/init.sql \

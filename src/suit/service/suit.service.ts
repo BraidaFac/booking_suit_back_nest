@@ -87,6 +87,9 @@ export class SuitService {
       where: {
         state: SuitState.ENLOCALSUCIO,
       },
+      relations: {
+        bookings: true,
+      },
     });
     if (suitsToLoundry.length > 0) {
       return suitsToLoundry;
@@ -101,6 +104,7 @@ export class SuitService {
         state: In([
           SuitState.LAVANDERIALUCECITALIMPIO,
           SuitState.LAVANDERIACELIALIMPIO,
+          SuitState.LAVANDERIACENTROLIMPIO,
         ]),
       },
       relations: {
@@ -119,6 +123,7 @@ export class SuitService {
         state: In([
           SuitState.LAVANDERIALUCECITASUCIO,
           SuitState.LAVANDERIACELIASUCIO,
+          SuitState.LAVANDERIACENTROSUCIO,
         ]),
       },
       relations: {

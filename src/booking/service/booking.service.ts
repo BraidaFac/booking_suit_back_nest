@@ -54,6 +54,16 @@ export class BookingService {
     } */
     this.calculateStartDate(newBooking);
     this.calculateEndDate(newBooking);
+    const duplicate = await this.bookingRepository.findOne({
+      where: {
+        suit: { id: suitFound.id },
+        booking_date: newBooking.booking_date,
+        booking_state: 'ACTIVED',
+      },
+    });
+    if (duplicate) {
+      throw new HttpException('Booking Already Exists', HttpStatus.CONFLICT);
+    }
     if (!(await this.verifyDisponibility(newBooking))) {
       throw new HttpException('Suit Not Available', HttpStatus.BAD_REQUEST);
     }
@@ -139,61 +149,7 @@ export class BookingService {
     return this.bookingRepository.save(bookingFound);
   }
 
-  async getDatesBySuit(id: string, dressmaker?: boolean) {
-    const suitFound = await this.suitRepository.findOne({
-      where: { id },
-    });
-    if (!suitFound) {
-      throw new HttpException('Suit Not Found', HttpStatus.NOT_FOUND);
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const bookings = await this.bookingRepository.find({
-      where: {
-        suit: suitFound,
-        booking_state: 'ACTIVED',
-        booking_date: MoreThanOrEqual(today),
-      },
-      order: { booking_date: 'ASC' },
-      relations: { suit: true },
-    });
-    const QUANTITY_OF_DAYS = dressmaker ? 48 : 24;
-
-    const availableDates = [];
-    for (let i = 0; i < bookings.length; i++) {
-      if (i === bookings.length - 1) {
-        availableDates.push({
-          start: bookings[i].end_at,
-        });
-        break;
-      } // Si es el último elemento del array, no se puede comparar con el siguiente (i + 1
-      const currentBooking: Booking = bookings[i];
-      const nextBooking: Booking = bookings[i + 1];
-      const timeDiff = differenceInHours(
-        nextBooking.start_at,
-        currentBooking.end_at,
-      );
-      if (timeDiff >= 120) {
-        for (let j = 1; j <= timeDiff / 24; j++) {
-          const date = new Date(currentBooking.end_at);
-          date.setHours(0, 0, 0, 0);
-          const free_day = addDays(date, j);
-          if (
-            this.verifyPreviousBooking(
-              free_day,
-              currentBooking.end_at,
-              QUANTITY_OF_DAYS,
-            ) &&
-            this.verifyPostBooking(free_day, nextBooking.start_at)
-          )
-            availableDates.push(free_day);
-        }
-      }
-    }
-    return availableDates;
-  }
-
-  async getBusyDatesBySuit(id: string) {
+  async getBusyDatesBySuit(id: string, dressmaker?: boolean) {
     const suitFound = await this.suitRepository.findOne({
       where: { id },
     });
@@ -218,7 +174,8 @@ export class BookingService {
       const start_at = new Date(currentBooking.start_at);
       const end_at = new Date(currentBooking.end_at);
       const booking_date = new Date(currentBooking.booking_date);
-      const datesInRangeLaundry = getDatesInRangeLaundry(booking_date, end_at);
+      const laundryEnd = dressmaker ? addDays(end_at, 2) : end_at;
+      const datesInRangeLaundry = getDatesInRangeLaundry(booking_date, laundryEnd);
       const preparation_date = new Date(currentBooking.booking_date);
       preparation_date.setDate(booking_date.getDate() - 1);
       if (currentBooking.dressmaker) {
@@ -318,32 +275,6 @@ export class BookingService {
       return true;
     }
     return false;
-  }
-
-  verifyPreviousBooking(
-    free_day: Date,
-    end_at: Date,
-    QUANTITY_OF_DAYS: number,
-  ) {
-    const hsDiff = differenceInHours(free_day, end_at);
-    if (hsDiff >= QUANTITY_OF_DAYS) {
-      return true;
-    } else return false;
-  }
-  verifyPostBooking(free_day: Date, start_at: Date) {
-    const hsDiff = differenceInHours(start_at, free_day);
-    if (
-      getDay(free_day) === 4 ||
-      getDay(free_day) === 5 ||
-      getDay(free_day) === 6
-    ) {
-      if (hsDiff >= 96) {
-        return true;
-      } else return false;
-    }
-    if (hsDiff >= 72) {
-      return true;
-    } else return false;
   }
 
   async updateBookingAndSuit(

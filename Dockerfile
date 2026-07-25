@@ -1,26 +1,29 @@
-FROM  alpine:3.19
+# ---- BUILD STAGE ----
+FROM node:22-alpine AS build
 
-# Instala las herramientas necesarias
-RUN apk add --no-cache nodejs npm
-# Instala las herramientas necesarias
-RUN apk add --no-cache python3 make g++
-# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copia el package.json y el package-lock.json al directorio de trabajo
 COPY package*.json ./
 
-# Instala las dependencias de la aplicación
-RUN npm install 
+RUN npm ci
 
-# Copia el resto de los archivos de la aplicación al directorio de trabajo
 COPY . .
 
-# Compila la aplicación
 RUN npm run build
 
-# Expone el puerto que utiliza la aplicación (3000 es el puerto por defecto de NestJS)
+# ---- PRODUCTION STAGE ----
+FROM node:22-alpine AS production
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# Instala solo dependencias de producción
+RUN npm ci --omit=dev
+
+# Copia el build ya generado
+COPY --from=build /app/dist ./dist
+
 EXPOSE 3000
 
-# Define el comando de inicio para la aplicación
 CMD ["npm", "run", "start:prod"]
