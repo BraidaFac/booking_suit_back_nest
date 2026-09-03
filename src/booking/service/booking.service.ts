@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { addDays, differenceInHours, getDay } from 'date-fns';
+import { differenceInHours } from 'date-fns';
 import { Booking } from 'src/booking/entity/booking.entity';
 import { Suit } from 'src/suit/entity/suit.entity';
 import { SuitState } from 'src/utils/suit_utils';
@@ -167,29 +167,24 @@ export class BookingService {
       relations: { suit: true },
     });
 
-    const busyDates = { laundry: [], dressmaker: [], preparation: [] };
+    const busyDates = { laundry: [], dressmaker: [], preparation: [], shadow: [] };
 
     for (let i = 0; i < bookings.length; i++) {
       const currentBooking: Booking = bookings[i];
-      const start_at = new Date(currentBooking.start_at);
       const end_at = new Date(currentBooking.end_at);
       const booking_date = new Date(currentBooking.booking_date);
-      const laundryEnd = dressmaker ? addDays(end_at, 2) : end_at;
-      const datesInRangeLaundry = getDatesInRangeLaundry(booking_date, laundryEnd);
-      const preparation_date = new Date(currentBooking.booking_date);
+      const datesInRangeLaundry = getDatesInRangeLaundry(booking_date, end_at);
+      const preparation_date = new Date(booking_date);
       preparation_date.setDate(booking_date.getDate() - 1);
-      if (currentBooking.dressmaker) {
-        const datesInRangeDressmaker = getDatesInRangeDressmaker(
-          start_at,
-          preparation_date,
-        );
-        busyDates.dressmaker = [
-          ...busyDates.dressmaker,
-          ...datesInRangeDressmaker,
-        ];
-      }
+      const shadowStart = new Date(booking_date);
+      shadowStart.setDate(booking_date.getDate() - 1 - Number(process.env.LAUNDRY));
+      const shadowDates = getDatesInRangeDressmaker(shadowStart, preparation_date);
       busyDates.laundry = [...busyDates.laundry, ...datesInRangeLaundry];
       busyDates.preparation = [...busyDates.preparation, preparation_date];
+      busyDates.shadow = [...busyDates.shadow, ...shadowDates];
+      if (currentBooking.dressmaker) {
+        busyDates.dressmaker = [...busyDates.dressmaker, preparation_date];
+      }
     }
     return busyDates;
   }
@@ -200,34 +195,16 @@ export class BookingService {
 
   //UTILS
   calculateStartDate(booking: Booking) {
-    if (booking.dressmaker) {
-      const start_date = new Date(booking.booking_date);
-      start_date.setDate(start_date.getDate() - 2);
-      start_date.setHours(12, 0, 0, 0);
-      booking.start_at = start_date;
-    } else {
-      const start_date = new Date(booking.booking_date);
-      start_date.setDate(start_date.getDate() - 1);
-      start_date.setHours(15, 0, 0, 0);
-      booking.start_at = start_date;
-    }
+    const start_date = new Date(booking.booking_date);
+    start_date.setDate(start_date.getDate() - 1);
+    start_date.setHours(15, 0, 0, 0);
+    booking.start_at = start_date;
   }
   calculateEndDate(booking: Booking) {
-    if (
-      getDay(booking.booking_date) === 4 ||
-      getDay(booking.booking_date) === 5 ||
-      getDay(booking.booking_date) === 6
-    ) {
-      const end_date = new Date(booking.booking_date);
-      end_date.setDate(end_date.getDate() + Number(process.env.LAUNDRY) + 1);
-      end_date.setHours(23, 59, 59);
-      booking.end_at = end_date;
-    } else {
-      const end_date = new Date(booking.booking_date);
-      end_date.setDate(end_date.getDate() + Number(process.env.LAUNDRY));
-      end_date.setHours(23, 59, 59);
-      booking.end_at = end_date;
-    }
+    const end_date = new Date(booking.booking_date);
+    end_date.setDate(end_date.getDate() + Number(process.env.LAUNDRY));
+    end_date.setHours(23, 59, 59);
+    booking.end_at = end_date;
   }
 
   async verifyDisponibility(booking: Booking) {
